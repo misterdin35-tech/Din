@@ -1,0 +1,6 @@
+{
+  "name": "DataPilot AI",
+  "description": "Autonomous AI Data Analyst platform with multi-agent reasoning, SQL Studio, Python analytics, dashboard builder, predictive forecasting, and automated BI reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

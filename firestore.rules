@@ -1,0 +1,337 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 200)) &&
+             data.organizationName is string && data.organizationName.size() >= 1 && data.organizationName.size() <= 100 &&
+             data.planTier in ['free', 'pro', 'business', 'enterprise'] &&
+             data.notificationsEnabled is bool &&
+             data.retentionDays is int && data.retentionDays >= 7 && data.retentionDays <= 3650;
+    }
+
+    function isValidDataset(data) {
+      return data.userId == request.auth.uid &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 150 &&
+             data.sourceType in ['csv', 'xlsx', 'sample'] &&
+             data.rowCount is int && data.rowCount >= 0 && data.rowCount <= 100000 &&
+             data.columnCount is int && data.columnCount >= 1 && data.columnCount <= 200 &&
+             data.qualityScore is int && data.qualityScore >= 0 && data.qualityScore <= 100 &&
+             data.missingCount is int && data.missingCount >= 0 &&
+             data.duplicateCount is int && data.duplicateCount >= 0 &&
+             data.outlierCount is int && data.outlierCount >= 0 &&
+             data.columnsSummary is list && data.columnsSummary.size() <= 200 &&
+             (data.columnsSummary.size() == 0 || data.columnsSummary[0] is string) &&
+             data.csvContent is string && data.csvContent.size() >= 1 && data.csvContent.size() <= 500000 &&
+             data.isCleaned is bool;
+    }
+
+    function isValidAnalysisJob(data) {
+      return data.userId == request.auth.uid &&
+             data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+             data.datasetName is string && data.datasetName.size() >= 1 && data.datasetName.size() <= 150 &&
+             data.question is string && data.question.size() >= 1 && data.question.size() <= 2000 &&
+             data.status in ['queued', 'running', 'completed', 'failed'] &&
+             data.currentAgent is string && data.currentAgent.size() >= 1 && data.currentAgent.size() <= 120 &&
+             data.progressPercent is int && data.progressPercent >= 0 && data.progressPercent <= 100 &&
+             data.executiveSummary is string && data.executiveSummary.size() <= 10000 &&
+             data.sqlGenerated is string && data.sqlGenerated.size() <= 5000 &&
+             data.pythonGenerated is string && data.pythonGenerated.size() <= 10000 &&
+             data.agentTraceSummary is string && data.agentTraceSummary.size() <= 5000 &&
+             data.errorMessage is string && data.errorMessage.size() <= 2000;
+    }
+
+    function isValidAnalysisRecord(data) {
+      return data.userId == request.auth.uid &&
+             data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+             data.datasetName is string && data.datasetName.size() >= 1 && data.datasetName.size() <= 150 &&
+             data.question is string && data.question.size() >= 1 && data.question.size() <= 2000 &&
+             data.executiveSummary is string && data.executiveSummary.size() >= 1 && data.executiveSummary.size() <= 10000 &&
+             data.sqlGenerated is string && data.sqlGenerated.size() <= 5000 &&
+             data.pythonGenerated is string && data.pythonGenerated.size() <= 10000 &&
+             data.agentTraceSummary is string && data.agentTraceSummary.size() <= 5000;
+    }
+
+    function isValidSavedQueryRecord(data) {
+      return data.userId == request.auth.uid &&
+             data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+             data.datasetName is string && data.datasetName.size() >= 1 && data.datasetName.size() <= 150 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 150 &&
+             data.sqlText is string && data.sqlText.size() >= 1 && data.sqlText.size() <= 10000 &&
+             data.rowCount is int && data.rowCount >= 0 &&
+             data.executionMs is int && data.executionMs >= 0;
+    }
+
+    function isValidDashboard(data) {
+      return data.userId == request.auth.uid &&
+             data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 150 &&
+             data.widgetsConfig is string && data.widgetsConfig.size() >= 2 && data.widgetsConfig.size() <= 100000 &&
+             data.dateFilter is string && data.dateFilter.size() >= 1 && data.dateFilter.size() <= 100;
+    }
+
+    function isValidReportRecord(data) {
+      return data.userId == request.auth.uid &&
+             data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+             data.datasetName is string && data.datasetName.size() >= 1 && data.datasetName.size() <= 150 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 150 &&
+             data.format in ['pdf', 'csv', 'executive'] &&
+             data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 20000;
+    }
+
+    function isValidIntegrationRecord(data) {
+      return data.userId == request.auth.uid &&
+             data.provider in ['postgresql', 'mysql', 'google_sheets', 'bigquery', 'snowflake', 'csv_excel'] &&
+             data.label is string && data.label.size() >= 1 && data.label.size() <= 150 &&
+             data.hostOrUri is string && data.hostOrUri.size() >= 1 && data.hostOrUri.size() <= 500 &&
+             data.status in ['connected', 'configured', 'pending_credentials'];
+    }
+
+    function isValidAutomationSchedule(data) {
+      return data.userId == request.auth.uid &&
+             data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 150 &&
+             data.frequency in ['daily', 'weekly'] &&
+             data.enabled is bool &&
+             data.anomalyAlerts is bool &&
+             data.emailDigestConsent is bool &&
+             data.lastRunSummary is string && data.lastRunSummary.size() <= 2000;
+    }
+
+    function isValidAuditLogRecord(data) {
+      return data.userId == request.auth.uid &&
+             data.action is string && data.action.size() >= 1 && data.action.size() <= 120 &&
+             data.resourceType is string && data.resourceType.size() >= 1 && data.resourceType.size() <= 80 &&
+             data.detail is string && data.detail.size() <= 1000;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'organizationName', 'planTier', 'notificationsEnabled', 'retentionDays', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'organizationName', 'planTier', 'notificationsEnabled', 'retentionDays', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'organizationName', 'planTier', 'notificationsEnabled', 'retentionDays', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /datasets/{datasetId} {
+        allow get: if isOwner(userId) && isValidId(datasetId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(datasetId) &&
+                         incoming().keys().hasAll(['userId', 'name', 'sourceType', 'rowCount', 'columnCount', 'qualityScore', 'missingCount', 'duplicateCount', 'outlierCount', 'columnsSummary', 'csvContent', 'isCleaned', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'name', 'sourceType', 'rowCount', 'columnCount', 'qualityScore', 'missingCount', 'duplicateCount', 'outlierCount', 'columnsSummary', 'csvContent', 'isCleaned', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidDataset(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(datasetId) &&
+                         isValidDataset(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'rowCount', 'columnCount', 'qualityScore', 'missingCount', 'duplicateCount', 'outlierCount', 'columnsSummary', 'csvContent', 'isCleaned', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(datasetId);
+      }
+
+      match /analysis_jobs/{jobId} {
+        allow get: if isOwner(userId) && isValidId(jobId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(jobId) &&
+                         incoming().keys().hasAll(['userId', 'datasetId', 'datasetName', 'question', 'status', 'currentAgent', 'progressPercent', 'executiveSummary', 'sqlGenerated', 'pythonGenerated', 'agentTraceSummary', 'errorMessage', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'datasetId', 'datasetName', 'question', 'status', 'currentAgent', 'progressPercent', 'executiveSummary', 'sqlGenerated', 'pythonGenerated', 'agentTraceSummary', 'errorMessage', 'createdAt', 'updatedAt']) &&
+                         incoming().status in ['queued', 'running'] &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidAnalysisJob(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(jobId) &&
+                         isValidAnalysisJob(incoming()) &&
+                         !(existing().status in ['completed', 'failed']) &&
+                         incoming().userId == existing().userId &&
+                         incoming().datasetId == existing().datasetId &&
+                         incoming().datasetName == existing().datasetName &&
+                         incoming().question == existing().question &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'currentAgent', 'progressPercent', 'executiveSummary', 'sqlGenerated', 'pythonGenerated', 'agentTraceSummary', 'errorMessage', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(jobId);
+      }
+
+      match /analyses/{analysisId} {
+        allow get: if isOwner(userId) && isValidId(analysisId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(analysisId) &&
+                         incoming().keys().hasAll(['userId', 'datasetId', 'datasetName', 'question', 'executiveSummary', 'sqlGenerated', 'pythonGenerated', 'agentTraceSummary', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'datasetId', 'datasetName', 'question', 'executiveSummary', 'sqlGenerated', 'pythonGenerated', 'agentTraceSummary', 'createdAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidAnalysisRecord(incoming());
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(analysisId);
+      }
+
+      match /saved_queries/{queryId} {
+        allow get: if isOwner(userId) && isValidId(queryId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(queryId) &&
+                         incoming().keys().hasAll(['userId', 'datasetId', 'datasetName', 'title', 'sqlText', 'rowCount', 'executionMs', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'datasetId', 'datasetName', 'title', 'sqlText', 'rowCount', 'executionMs', 'createdAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidSavedQueryRecord(incoming());
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(queryId);
+      }
+
+      match /dashboards/{dashboardId} {
+        allow get: if isOwner(userId) && isValidId(dashboardId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(dashboardId) &&
+                         incoming().keys().hasAll(['userId', 'datasetId', 'title', 'widgetsConfig', 'dateFilter', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'datasetId', 'title', 'widgetsConfig', 'dateFilter', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidDashboard(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(dashboardId) &&
+                         isValidDashboard(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'widgetsConfig', 'dateFilter', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(dashboardId);
+      }
+
+      match /reports/{reportId} {
+        allow get: if isOwner(userId) && isValidId(reportId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(reportId) &&
+                         incoming().keys().hasAll(['userId', 'datasetId', 'datasetName', 'title', 'format', 'summary', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'datasetId', 'datasetName', 'title', 'format', 'summary', 'createdAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidReportRecord(incoming());
+
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(reportId);
+      }
+
+      match /integrations/{integrationId} {
+        allow get: if isOwner(userId) && isValidId(integrationId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(integrationId) &&
+                         incoming().keys().hasAll(['userId', 'provider', 'label', 'hostOrUri', 'status', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'provider', 'label', 'hostOrUri', 'status', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidIntegrationRecord(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(integrationId) &&
+                         isValidIntegrationRecord(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['label', 'hostOrUri', 'status', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(integrationId);
+      }
+
+      match /schedules/{scheduleId} {
+        allow get: if isOwner(userId) && isValidId(scheduleId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(scheduleId) &&
+                         incoming().keys().hasAll(['userId', 'datasetId', 'title', 'frequency', 'enabled', 'anomalyAlerts', 'emailDigestConsent', 'lastRunSummary', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'datasetId', 'title', 'frequency', 'enabled', 'anomalyAlerts', 'emailDigestConsent', 'lastRunSummary', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidAutomationSchedule(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(scheduleId) &&
+                         isValidAutomationSchedule(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'frequency', 'enabled', 'anomalyAlerts', 'emailDigestConsent', 'lastRunSummary', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(scheduleId);
+      }
+
+      match /audit_logs/{logId} {
+        allow get: if isOwner(userId) && isValidId(logId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(logId) &&
+                         incoming().keys().hasAll(['userId', 'action', 'resourceType', 'detail', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'action', 'resourceType', 'detail', 'createdAt']) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         isValidAuditLogRecord(incoming());
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}

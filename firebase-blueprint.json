@@ -1,0 +1,216 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated DataPilot AI user profile and workspace preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "displayName": { "type": "string", "description": "Display name." },
+        "email": { "type": "string", "description": "User email address." },
+        "organizationName": { "type": "string", "description": "Workspace or organization name." },
+        "planTier": { "type": "string", "enum": ["free", "pro", "business", "enterprise"], "description": "Selected illustrative plan tier." },
+        "notificationsEnabled": { "type": "boolean", "description": "Whether anomaly and report alerts are enabled." },
+        "retentionDays": { "type": "integer", "description": "Data retention period in days." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update." }
+      },
+      "required": ["userId", "displayName", "organizationName", "planTier", "notificationsEnabled", "retentionDays", "createdAt", "updatedAt"]
+    },
+    "Dataset": {
+      "title": "Dataset",
+      "description": "Uploaded or sample analytical dataset stored in the user's workspace.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "sourceType": { "type": "string", "enum": ["csv", "xlsx", "sample"] },
+        "rowCount": { "type": "integer" },
+        "columnCount": { "type": "integer" },
+        "qualityScore": { "type": "integer" },
+        "missingCount": { "type": "integer" },
+        "duplicateCount": { "type": "integer" },
+        "outlierCount": { "type": "integer" },
+        "columnsSummary": { "type": "array" },
+        "csvContent": { "type": "string" },
+        "isCleaned": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "sourceType", "rowCount", "columnCount", "qualityScore", "missingCount", "duplicateCount", "outlierCount", "columnsSummary", "csvContent", "isCleaned", "createdAt", "updatedAt"]
+    },
+    "AnalysisJob": {
+      "title": "AnalysisJob",
+      "description": "Autonomous multi-agent analysis job tracking execution status, active agent, and grounded results.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "datasetId": { "type": "string" },
+        "datasetName": { "type": "string" },
+        "question": { "type": "string" },
+        "status": { "type": "string", "enum": ["queued", "running", "completed", "failed"] },
+        "currentAgent": { "type": "string" },
+        "progressPercent": { "type": "integer" },
+        "executiveSummary": { "type": "string" },
+        "sqlGenerated": { "type": "string" },
+        "pythonGenerated": { "type": "string" },
+        "agentTraceSummary": { "type": "string" },
+        "errorMessage": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "datasetId", "datasetName", "question", "status", "currentAgent", "progressPercent", "executiveSummary", "sqlGenerated", "pythonGenerated", "agentTraceSummary", "errorMessage", "createdAt", "updatedAt"]
+    },
+    "AnalysisRecord": {
+      "title": "AnalysisRecord",
+      "description": "Completed autonomous multi-agent analysis session grounded in dataset calculations.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "datasetId": { "type": "string" },
+        "datasetName": { "type": "string" },
+        "question": { "type": "string" },
+        "executiveSummary": { "type": "string" },
+        "sqlGenerated": { "type": "string" },
+        "pythonGenerated": { "type": "string" },
+        "agentTraceSummary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "datasetId", "datasetName", "question", "executiveSummary", "sqlGenerated", "pythonGenerated", "agentTraceSummary", "createdAt"]
+    },
+    "SavedQueryRecord": {
+      "title": "SavedQueryRecord",
+      "description": "Saved SQL query from SQL Studio with execution telemetry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "datasetId": { "type": "string" },
+        "datasetName": { "type": "string" },
+        "title": { "type": "string" },
+        "sqlText": { "type": "string" },
+        "rowCount": { "type": "integer" },
+        "executionMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "datasetId", "datasetName", "title", "sqlText", "rowCount", "executionMs", "createdAt"]
+    },
+    "Dashboard": {
+      "title": "Dashboard",
+      "description": "Saved custom BI dashboard layout and widget configuration.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "datasetId": { "type": "string" },
+        "title": { "type": "string" },
+        "widgetsConfig": { "type": "string" },
+        "dateFilter": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "datasetId", "title", "widgetsConfig", "dateFilter", "createdAt", "updatedAt"]
+    },
+    "ReportRecord": {
+      "title": "ReportRecord",
+      "description": "Generated executive PDF or CSV report metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "datasetId": { "type": "string" },
+        "datasetName": { "type": "string" },
+        "title": { "type": "string" },
+        "format": { "type": "string", "enum": ["pdf", "csv", "executive"] },
+        "summary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "datasetId", "datasetName", "title", "format", "summary", "createdAt"]
+    },
+    "IntegrationRecord": {
+      "title": "IntegrationRecord",
+      "description": "Configured data source integration connector.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "provider": { "type": "string", "enum": ["postgresql", "mysql", "google_sheets", "bigquery", "snowflake", "csv_excel"] },
+        "label": { "type": "string" },
+        "hostOrUri": { "type": "string" },
+        "status": { "type": "string", "enum": ["connected", "configured", "pending_credentials"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "provider", "label", "hostOrUri", "status", "createdAt", "updatedAt"]
+    },
+    "AutomationSchedule": {
+      "title": "AutomationSchedule",
+      "description": "Scheduled analysis, anomaly alert, or forecast automation rule.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "datasetId": { "type": "string" },
+        "title": { "type": "string" },
+        "frequency": { "type": "string", "enum": ["daily", "weekly"] },
+        "enabled": { "type": "boolean" },
+        "anomalyAlerts": { "type": "boolean" },
+        "emailDigestConsent": { "type": "boolean" },
+        "lastRunSummary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "datasetId", "title", "frequency", "enabled", "anomalyAlerts", "emailDigestConsent", "lastRunSummary", "createdAt", "updatedAt"]
+    },
+    "AuditLogRecord": {
+      "title": "AuditLogRecord",
+      "description": "Immutable security and analysis audit trail entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "resourceType": { "type": "string" },
+        "detail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "action", "resourceType", "detail", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User workspace profile and preferences."
+    },
+    "/users/{userId}/datasets/{datasetId}": {
+      "schema": { "$ref": "#/entities/Dataset" },
+      "description": "Datasets belonging to the user."
+    },
+    "/users/{userId}/analysis_jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/AnalysisJob" },
+      "description": "Autonomous analysis jobs tracking execution lifecycle and outputs for the user."
+    },
+    "/users/{userId}/analyses/{analysisId}": {
+      "schema": { "$ref": "#/entities/AnalysisRecord" },
+      "description": "AI analyst session records belonging to the user."
+    },
+    "/users/{userId}/saved_queries/{queryId}": {
+      "schema": { "$ref": "#/entities/SavedQueryRecord" },
+      "description": "Saved SQL Studio queries belonging to the user."
+    },
+    "/users/{userId}/dashboards/{dashboardId}": {
+      "schema": { "$ref": "#/entities/Dashboard" },
+      "description": "Saved BI dashboards belonging to the user."
+    },
+    "/users/{userId}/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/ReportRecord" },
+      "description": "Generated executive reports belonging to the user."
+    },
+    "/users/{userId}/integrations/{integrationId}": {
+      "schema": { "$ref": "#/entities/IntegrationRecord" },
+      "description": "Configured external or local data source integrations."
+    },
+    "/users/{userId}/schedules/{scheduleId}": {
+      "schema": { "$ref": "#/entities/AutomationSchedule" },
+      "description": "Automated monitoring and forecasting rules."
+    },
+    "/users/{userId}/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLogRecord" },
+      "description": "Append-only security and execution audit logs."
+    }
+  }
+}
